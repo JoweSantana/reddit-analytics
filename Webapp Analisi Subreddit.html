@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reddit Analytics Dashboard | Analisi Subreddit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #FF4500 0%, #FF6347 50%, #FFA500 100%);
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .slide-in {
+            animation: slideIn 0.6s ease-out forwards;
+        }
+        
+        .stat-number {
+            background: linear-gradient(135deg, #FF4500, #FF6347);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .loading-shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        .reddit-orange { color: #FF4500; }
+        .bg-reddit-orange { background-color: #FF4500; }
+        
+        .tag-cloud span {
+            transition: all 0.3s ease;
+        }
+        
+        .tag-cloud span:hover {
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-2xl">
+        <div class="container mx-auto px-6 py-8">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <i class="fab fa-reddit text-5xl"></i>
+                    <div>
+                        <h1 class="text-3xl font-bold">Reddit Analytics Pro</h1>
+                        <p class="text-orange-100">Analisi avanzata dei subreddit italiani e internazionali</p>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-4">
+                    <span class="glass-effect px-4 py-2 rounded-full text-sm">
+                        <i class="fas fa-bolt mr-2"></i>Powered by AI Analysis
+                    </span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        
+        <!-- Input Section -->
+        <section class="mb-12 slide-in">
+            <div class="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-search reddit-orange mr-3"></i>
+                    Analizza un Subreddit
+                </h2>
+                
+                <div class="grid md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nome Subreddit</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-3 text-gray-400 text-lg">r/</span>
+                            <input type="text" id="subredditInput" placeholder="es: IA_Italia, Italy, technology..." 
+                                class="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none transition-colors text-lg"
+                                value="IA_Italia">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Numero di post da analizzare</label>
+                        <select id="postLimit" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none text-lg">
+                            <option value="25">25 post (Veloce)</option>
+                            <option value="50" selected>50 post (Standard)</option>
+                            <option value="100">100 post (Dettagliato)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap gap-4">
+                    <button onclick="analyzeSubreddit()" 
+                        class="bg-reddit-orange text-white px-8 py-3 rounded-xl font-semibold hover:bg-orange-600 transition-all transform hover:scale-105 shadow-lg flex items-center">
+                        <i class="fas fa-chart-line mr-2"></i>
+                        Avvia Analisi
+                    </button>
+                    <button onclick="loadDemoData()" 
+                        class="bg-gray-100 text-gray-700 px-8 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-all flex items-center">
+                        <i class="fas fa-play-circle mr-2"></i>
+                        Carica Demo
+                    </button>
+                    <div class="flex items-center text-sm text-gray-500">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <span>Modalità demo disponibile per test</span>
+                    </div>
+                </div>
+
+                <div id="loadingIndicator" class="hidden mt-6">
+                    <div class="flex items-center justify-center space-x-2 text-orange-600">
+                        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600"></div>
+                        <span class="font-medium">Analisi in corso...</span>
+                    </div>
+                    <div class="mt-4 space-y-2">
+                        <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div id="progressBar" class="h-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <p id="loadingText" class="text-sm text-gray-500 text-center">Recupero dati da Reddit...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="hidden mb-8 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-red-500 mr-3"></i>
+                <p id="errorText" class="text-red-700"></p>
+            </div>
+        </div>
+
+        <!-- Dashboard Results -->
+        <div id="dashboard" class="hidden space-y-8">
+            
+            <!-- Overview Cards -->
+            <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 slide-in">
+                <div class="bg-white rounded-2xl p-6 shadow-lg card-hover border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-orange-100 rounded-xl">
+                            <i class="fas fa-fire text-2xl reddit-orange"></i>
+                        </div>
+                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Engagement Totale</span>
+                    </div>
+                    <div class="stat-number text-3xl font-bold" id="totalEngagement">0</div>
+                    <p class="text-sm text-gray-500 mt-1">Upvotes + Commenti</p>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 shadow-lg card-hover border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-blue-100 rounded-xl">
+                            <i class="fas fa-users text-2xl text-blue-600"></i>
+                        </div>
+                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Post Analizzati</span>
+                    </div>
+                    <div class="text-3xl font-bold text-blue-600" id="totalPosts">0</div>
+                    <p class="text-sm text-gray-500 mt-1">Ultimi post pubblicati</p>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 shadow-lg card-hover border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-green-100 rounded-xl">
+                            <i class="fas fa-comment-alt text-2xl text-green-600"></i>
+                        </div>
+                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Media Commenti</span>
+                    </div>
+                    <div class="text-3xl font-bold text-green-600" id="avgComments">0</div>
+                    <p class="text-sm text-gray-500 mt-1">Per post</p>
+                </div>
+
+                <div class="bg-white rounded-2xl p-6 shadow-lg card-hover border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-purple-100 rounded-xl">
+                            <i class="fas fa-clock text-2xl text-purple-600"></i>
+                        </div>
+                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Attività Top</span>
+                    </div>
+                    <div class="text-3xl font-bold text-purple-600" id="peakHour">--:--</div>
+                    <p class="text-sm text-gray-500 mt-1">Ora più attiva</p>
+                </div>
+            </section>
+
+            <!-- Charts Row -->
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 slide-in">
+                <!-- Activity Timeline -->
+                <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                    <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <i class="fas fa-chart-area reddit-orange mr-2"></i>
+                        Timeline Attività
+                    </h3>
+                    <canvas id="activityChart" height="250"></canvas>
+                </div>
+
+                <!-- Top Flairs -->
+                <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                    <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <i class="fas fa-tags reddit-orange mr-2"></i>
+                        Categorie più Popolari
+                    </h3>
+                    <canvas id="flairChart" height="250"></canvas>
+                </div>
+            </section>
+
+            <!-- Top Authors & Hot Topics -->
+            <section class="grid grid-cols-1 lg:grid-cols-3 gap-8 slide-in">
+                <!-- Top Authors -->
+                <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                    <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center justify-between">
+                        <span><i class="fas fa-trophy reddit-orange mr-2"></i>Top Autori</span>
+                        <span class="text-sm font-normal text-gray-500">Per karma generato</span>
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 rounded-lg">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">#</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Autore</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Post</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Karma Totale</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Engagement</th>
+                                </tr>
+                            </thead>
+                            <tbody id="authorsTable" class="divide-y divide-gray-100">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Hot Topics Word Cloud -->
+                <div class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+                    <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <i class="fas fa-cloud reddit-orange mr-2"></i>
+                        Topic Trending
+                    </h3>
+                    <div id="wordCloud" class="tag-cloud flex flex-wrap gap-2 justify-center min-h-[300px] items-center">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Best Performing Posts -->
+            <section class="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 slide-in">
+                <h3 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                    <i class="fas fa-star reddit-orange mr-2"></i>
+                    Post di Maggior Successo
+                </h3>
+                <div id="topPosts" class="space-y-4">
+                </div>
+            </section>
+
+            <!-- Insights -->
+            <section class="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl p-8 text-white shadow-xl slide-in">
+                <h3 class="text-2xl font-bold mb-6 flex items-center">
+                    <i class="fas fa-lightbulb mr-3"></i>
+                    Insight & Raccomandazioni
+                </h3>
+                <div id="insights" class="grid md:grid-cols-3 gap-6">
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-400 py-8 mt-12">
+        <div class="container mx-auto px-6 text-center">
+            <p class="mb-2">Reddit Analytics Dashboard - Realizzato per r/IA_Italia</p>
+            <p class="text-sm">I dati sono aggiornati in tempo reale dall'API di Reddit</p>
+        </div>
+    </footer>
+
+    <script>
+        let currentData = null;
+        let charts = {};
+
+        // Demo data generator
+        function generateDemoData(subreddit) {
+            const authors = ['TechWizard', 'AIFan_99', 'RedditorITA', 'CodeMaster', 'DigitalNomad', 
+                           'StartupGuy', 'DataScientist', 'DevOps_Pro', 'UX_Designer', 'CloudExpert'];
+            const flairs = ['Discussion', 'AI News', 'Tutorial', 'Tool', 'Project', 'Ask AI', 'Research'];
+            const titles = [
+                "Ho creato un tool AI che genera codice Python",
+                "ChatGPT vs Claude: confronto approfondito",
+                "Guida completa al prompting avanzato",
+                "Nuovo modello open source rilasciato oggi",
+                "Come ho automatizzato il mio workflow con AI",
+                "Stable Diffusion 3: prime impressioni",
+                "Machine Learning per principianti",
+                "L'impatto dell'AI sul lavoro creativo",
+                "Tutorial: fine-tuning di LLM locali",
+                "Agenti AI autonomi: stato dell'arte"
+            ];
+
+            const posts = [];
+            const now = Date.now() / 1000;
+            
+            for (let i = 0; i < 50; i++) {
+                const author = authors[Math.floor(Math.random() * authors.length)];
+                const flair = flairs[Math.floor(Math.random() * flairs.length)];
+                const baseTitle = titles[Math.floor(Math.random() * titles.length)];
+                
+                posts.push({
+                    title: baseTitle + (Math.random() > 0.5 ? ' [' + i + ']' : ''),
+                    author: author,
+                    score: Math.floor(Math.random() * 500) + 10,
+                    num_comments: Math.floor(Math.random() * 100),
+                    created_utc: now - (Math.random() * 604800), // Ultima settimana
+                    link_flair_text: flair,
+                    url: `https://reddit.com/r/${subreddit}/comments/${Math.random().toString(36).substr(2, 6)}`,
+                    selftext: Math.random() > 0.7 ? "Testo del post con dettagli interessanti..." : ""
+                });
+            }
+
+            return { data: { children: posts.map(p => ({ data: p })) } };
+        }
+
+        async function analyzeSubreddit() {
+            const subreddit = document.getElementById('subredditInput').value.trim();
+            const limit = parseInt(document.getElementById('postLimit').value);
+            
+            if (!subreddit) {
+                showError('Inserisci un nome subreddit valido');
+                return;
+            }
+
+            showLoading(true);
+            updateProgress(10);
+
+            try {
+                // Try to fetch from Reddit API
+                const url = `https://www.reddit.com/r/${subreddit}/hot.json?limit=${limit}`;
+                
+                updateProgress(30);
+                
+                // Using fetch with no-cors mode as fallback
+                let response;
+                try {
+                    response = await fetch(url, {
+                        headers: {
+                            'User-Agent': 'RedditAnalyticsDashboard/1.0'
+                        }
+                    });
+                } catch (e) {
+                    // If CORS fails, use demo data
+                    console.log('CORS error, switching to demo mode');
+                    throw new Error('CORS');
+                }
+
+                updateProgress(60);
+
+                if (!response.ok) throw new Error('Subreddit non trovato o privato');
+
+                const data = await response.json();
+                currentData = processRedditData(data, subreddit);
+                
+            } catch (error) {
+                console.log('Using demo data due to:', error.message);
+                // Generate realistic demo data
+                const demoData = generateDemoData(subreddit);
+                currentData = processRedditData(demoData, subreddit);
+                
+                // Show demo mode indicator
+                const dashboard = document.getElementById('dashboard');
+                dashboard.insertAdjacentHTML('afterbegin', `
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg mb-6">
+                        <div class="flex items-center">
+                            <i class="fas fa-info-circle text-blue-500 mr-3"></i>
+                            <p class="text-blue-700">
+                                <strong>Modalità Demo Attiva:</strong> Mostrando dati simulati per r/${subreddit}. 
+                                Per dati reali, il subreddit deve permettere richieste CORS o usa l'estensione browser per bypass.
+                            </p>
+                        </div>
+                    </div>
+                `);
+            }
+
+            updateProgress(100);
+            setTimeout(() => {
+                showLoading(false);
+                displayResults(currentData);
+            }, 500);
+        }
+
+        function processRedditData(rawData, subredditName) {
+            const posts = rawData.data.children.map(child => child.data);
+            
+            // Basic stats
+            const totalScore = posts.reduce((sum, p) => sum + p.score, 0);
+            const totalComments = posts.reduce((sum, p) => sum + p.num_comments, 0);
+            const avgComments = (totalComments / posts.length).toFixed(1);
+            
+            // Authors analysis
+            const authorStats = {};
+            posts.forEach(post => {
+                if (!authorStats[post.author]) {
+                    authorStats[post.author] = {
+                        posts: 0,
+                        karma: 0,
+                        comments: 0
+                    };
+                }
+                authorStats[post.author].posts++;
+                authorStats[post.author].karma += post.score;
+                authorStats[post.author].comments += post.num_comments;
+            });
+            
+            const topAuthors = Object.entries(authorStats)
+                .map(([name, stats]) => ({ name, ...stats }))
+                .sort((a, b) => b.karma - a.karma)
+                .slice(0, 10);
+            
+            // Flair analysis
+            const flairStats = {};
+            posts.forEach(post => {
+                const flair = post.link_flair_text || 'Senza Flair';
+                if (!flairStats[flair]) flairStats[flair] = 0;
+                flairStats[flair]++;
+            });
+            
+            // Hourly activity
+            const hourlyActivity = new Array(24).fill(0);
+            posts.forEach(post => {
+                const hour = new Date(post.created_utc * 1000).getHours();
+                hourlyActivity[hour]++;
+            });
+            
+            const peakHour = hourlyActivity.indexOf(Math.max(...hourlyActivity));
+            
+            // Word analysis for trending topics
+            const wordFreq = {};
+            const stopWords = new Set(['il', 'la', 'lo', 'i', 'gli', 'le', 'di', 'a', 'da', 'in', 'con', 'su', 'per', 'tra', 'fra', 'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'che', 'non', 'è', 'sono', 'un', 'una']);
+            
+            posts.forEach(post => {
+                const text = (post.title + ' ' + (post.selftext || '')).toLowerCase();
+                const words = text.match(/\b[a-zA-Zàèéìòù]{4,}\b/g) || [];
+                words.forEach(word => {
+                    if (!stopWords.has(word) && word.length > 3) {
+                        wordFreq[word] = (wordFreq[word] || 0) + post.score;
+                    }
+                });
+            });
+            
+            const trendingWords = Object.entries(wordFreq)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 20);
+            
+            return {
+                subreddit: subredditName,
+                totalPosts: posts.length,
+                totalScore,
+                totalComments,
+                avgComments,
+                peakHour,
+                topAuthors,
+                flairStats,
+                hourlyActivity,
+                trendingWords,
+                topPosts: posts.sort((a, b) => b.score - a.score).slice(0, 5)
+            };
+        }
+
+        function displayResults(data) {
+            document.getElementById('dashboard').classList.remove('hidden');
+            
+            // Update stats
+            animateNumber('totalEngagement', data.totalScore + data.totalComments);
+            animateNumber('totalPosts', data.totalPosts);
+            document.getElementById('avgComments').textContent = data.avgComments;
+            document.getElementById('peakHour').textContent = `${String(data.peakHour).padStart(2, '0')}:00`;
+            
+            // Render charts
+            renderActivityChart(data.hourlyActivity);
+            renderFlairChart(data.flairStats);
+            
+            // Render tables
+            renderAuthorsTable(data.topAuthors);
+            renderWordCloud(data.trendingWords);
+            renderTopPosts(data.topPosts);
+            renderInsights(data);
+            
+            // Scroll to results
+            document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function renderActivityChart(hourlyData) {
+            const ctx = document.getElementById('activityChart').getContext('2d');
+            if (charts.activity) charts.activity.destroy();
+            
+            charts.activity = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 24}, (_, i) => `${String(i).padStart(2, '0')}:00`),
+                    datasets: [{
+                        label: 'Post pubblicati',
+                        data: hourlyData,
+                        borderColor: '#FF4500',
+                        backgroundColor: 'rgba(255, 69, 0, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#FF4500'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                    }
+                }
+            });
+        }
+
+        function renderFlairChart(flairData) {
+            const ctx = document.getElementById('flairChart').getContext('2d');
+            if (charts.flair) charts.flair.destroy();
+            
+            const labels = Object.keys(flairData).slice(0, 6);
+            const data = labels.map(l => flairData[l]);
+            const colors = ['#FF4500', '#FF6347', '#FFA500', '#FFD700', '#FF8C00', '#FF7F50'];
+            
+            charts.flair = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 15, font: { size: 11 } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderAuthorsTable(authors) {
+            const tbody = document.getElementById('authorsTable');
+            tbody.innerHTML = authors.map((author, index) => `
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 font-bold text-gray-400">#${index + 1}</td>
+                    <td class="px-4 py-3 font-semibold text-gray-800">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold mr-3">
+                                ${author.name[0].toUpperCase()}
+                            </div>
+                            u/${author.name}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-gray-600">${author.posts}</td>
+                    <td class="px-4 py-3 font-semibold text-orange-600">${author.karma.toLocaleString()}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center text-sm text-gray-500">
+                            <i class="fas fa-comment mr-1 text-xs"></i> ${author.comments}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderWordCloud(words) {
+            const container = document.getElementById('wordCloud');
+            const maxScore = Math.max(...words.map(w => w[1]));
+            
+            container.innerHTML = words.map(([word, score]) => {
+                const size = 0.8 + (score / maxScore) * 1.5;
+                const opacity = 0.6 + (score / maxScore) * 0.4;
+                const colors = ['text-orange-600', 'text-red-500', 'text-orange-500', 'text-yellow-600', 'text-red-600'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                
+                return `<span class="${color} font-bold cursor-pointer" style="font-size: ${size}rem; opacity: ${opacity}">${word}</span>`;
+            }).join('');
+        }
+
+        function renderTopPosts(posts) {
+            const container = document.getElementById('topPosts');
+            container.innerHTML = posts.map((post, index) => `
+                <div class="flex items-start space-x-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer" onclick="window.open('${post.url}', '_blank')">
+                    <div class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                        ${index + 1}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h4 class="text-gray-800 font-semibold truncate pr-4">${post.title}</h4>
+                        <div class="flex items-center space-x-4 mt-2 text-sm text-gray-500">
+                            <span class="flex items-center"><i class="fas fa-user mr-1"></i> u/${post.author}</span>
+                            <span class="flex items-center text-orange-600"><i class="fas fa-arrow-up mr-1"></i> ${post.score}</span>
+                            <span class="flex items-center"><i class="fas fa-comment mr-1"></i> ${post.num_comments}</span>
+                            ${post.link_flair_text ? `<span class="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">${post.link_flair_text}</span>` : ''}
+                        </div>
+                    </div>
+                    <i class="fas fa-external-link-alt text-gray-400"></i>
+                </div>
+            `).join('');
+        }
+
+        function renderInsights(data) {
+            const insights = [];
+            
+            // Best time insight
+            insights.push({
+                icon: 'fa-clock',
+                title: 'Miglior Orario',
+                text: `Pubblica alle ${String(data.peakHour).padStart(2, '0')}:00 per massima visibilità. Questo è l'orario con più attività nel subreddit.`
+            });
+            
+            // Top author insight
+            const topAuthor = data.topAuthors[0];
+            insights.push({
+                icon: 'fa-crown',
+                title: 'Influencer Top',
+                text: `u/${topAuthor.name} genera il maggior engagement con ${topAuthor.karma} karma totali. Considera collaborazioni.`
+            });
+            
+            // Content type insight
+            const topFlair = Object.entries(data.flairStats).sort((a, b) => b[1] - a[1])[0];
+            insights.push({
+                icon: 'fa-fire',
+                title: 'Contenuto Hot',
+                text: `I post con flair "${topFlair[0]}" sono i più numerosi. Focus su questo tipo di contenuto per crescita.`
+            });
+            
+            document.getElementById('insights').innerHTML = insights.map(insight => `
+                <div class="bg-white bg-opacity-20 backdrop-blur-sm rounded-xl p-4 border border-white border-opacity-30">
+                    <div class="flex items-center mb-3">
+                        <i class="fas ${insight.icon} text-2xl mr-3"></i>
+                        <h4 class="font-bold text-lg">${insight.title}</h4>
+                    </div>
+                    <p class="text-sm opacity-90 leading-relaxed">${insight.text}</p>
+                </div>
+            `).join('');
+        }
+
+        function animateNumber(id, target) {
+            const element = document.getElementById(id);
+            const duration = 1000;
+            const start = 0;
+            const startTime = performance.now();
+            
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                const current = Math.floor(start + (target - start) * easeOut);
+                
+                element.textContent = current.toLocaleString();
+                
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+            
+            requestAnimationFrame(update);
+        }
+
+        function showLoading(show) {
+            document.getElementById('loadingIndicator').classList.toggle('hidden', !show);
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressBar').style.width = percent + '%';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            document.getElementById('errorText').textContent = message;
+            errorDiv.classList.remove('hidden');
+            setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+        }
+
+        function loadDemoData() {
+            document.getElementById('subredditInput').value = 'IA_Italia';
+            analyzeSubreddit();
+        }
+
+        // Enter key support
+        document.getElementById('subredditInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') analyzeSubreddit();
+        });
+    </script>
+</body>
+</html>
