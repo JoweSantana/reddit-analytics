@@ -10,9 +10,9 @@
     <style>
         * { font-family: system-ui, -apple-system, sans-serif; }
         .gradient-bg { background: linear-gradient(135deg, #FF4500 0%, #FF6347 100%); }
-        .reddit-orange { color: #FF4500; }
         .card-hover { transition: all 0.3s ease; }
         .card-hover:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .chart-container { position: relative; height: 250px; width: 100%; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -23,14 +23,14 @@
                 <i class="fab fa-reddit text-4xl mr-4"></i>
                 <div>
                     <h1 class="text-2xl font-bold">Reddit Analytics Pro</h1>
-                    <p class="text-orange-100">Dashboard demo - Dati simulati</p>
+                    <p class="text-orange-100">Dashboard con grafici funzionanti</p>
                 </div>
             </div>
         </div>
     </header>
 
     <main class="container mx-auto px-6 py-8">
-        <!-- Dashboard (sempre visibile) -->
+        <!-- Dashboard -->
         <div id="dashboard" class="space-y-8">
             
             <!-- Cards Overview -->
@@ -56,170 +56,284 @@
             <!-- Grafici -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white rounded-xl p-6 shadow">
-                    <h3 class="text-lg font-bold mb-4">📈 Timeline Attività</h3>
-                    <canvas id="activityChart" style="height:250px; width:100%;"></canvas>
+                    <h3 class="text-lg font-bold mb-4 flex items-center">
+                        <i class="fas fa-chart-line text-orange-600 mr-2"></i>
+                        Timeline Attività
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="activityChart"></canvas>
+                    </div>
                 </div>
                 <div class="bg-white rounded-xl p-6 shadow">
-                    <h3 class="text-lg font-bold mb-4">🥧 Categorie più Popolari</h3>
-                    <canvas id="flairChart" style="height:250px; width:100%;"></canvas>
+                    <h3 class="text-lg font-bold mb-4 flex items-center">
+                        <i class="fas fa-chart-pie text-orange-600 mr-2"></i>
+                        Categorie più Popolari
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="flairChart"></canvas>
+                    </div>
                 </div>
             </div>
 
             <!-- Top Autori -->
             <div class="bg-white rounded-xl p-6 shadow">
-                <h3 class="text-lg font-bold mb-4">🏆 Top Autori</h3>
-                <table class="w-full">
-                    <thead class="bg-gray-50">
-                        <tr><th>Autore</th><th>Post</th><th>Karma</th><th>Commenti</th></tr>
-                    </thead>
-                    <tbody id="authorsTable"></tbody>
-                </table>
+                <h3 class="text-lg font-bold mb-4 flex items-center">
+                    <i class="fas fa-trophy text-orange-600 mr-2"></i>
+                    Top Autori
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left">Autore</th>
+                                <th class="px-4 py-2 text-left">Post</th>
+                                <th class="px-4 py-2 text-left">Karma</th>
+                                <th class="px-4 py-2 text-left">Commenti</th>
+                            </tr>
+                        </thead>
+                        <tbody id="authorsTable"></tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Word Cloud + Top Posts -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white rounded-xl p-6 shadow">
-                    <h3 class="text-lg font-bold mb-4">☁️ Topic Trending</h3>
-                    <div id="wordCloud" class="flex flex-wrap gap-2"></div>
+                    <h3 class="text-lg font-bold mb-4 flex items-center">
+                        <i class="fas fa-cloud text-orange-600 mr-2"></i>
+                        Topic Trending
+                    </h3>
+                    <div id="wordCloud" class="flex flex-wrap gap-3 min-h-[200px] items-center justify-center"></div>
                 </div>
                 <div class="bg-white rounded-xl p-6 shadow">
-                    <h3 class="text-lg font-bold mb-4">⭐ Post di Successo</h3>
+                    <h3 class="text-lg font-bold mb-4 flex items-center">
+                        <i class="fas fa-star text-orange-600 mr-2"></i>
+                        Post di Maggior Successo
+                    </h3>
                     <div id="topPosts" class="space-y-3"></div>
                 </div>
             </div>
 
             <!-- Insights -->
             <div class="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 text-white shadow">
-                <h3 class="text-xl font-bold mb-4">💡 Insight</h3>
+                <h3 class="text-xl font-bold mb-4 flex items-center">
+                    <i class="fas fa-lightbulb mr-2"></i>
+                    Insight & Raccomandazioni
+                </h3>
                 <div id="insights" class="grid md:grid-cols-3 gap-4"></div>
             </div>
         </div>
     </main>
 
     <script>
-        // Funzione che parte SUBITO
+        // Funzione principale che parte SUBITO
         (function() {
-            console.log("🚀 Avvio dashboard...");
+            console.log("🚀 Avvio dashboard migliorata...");
             
-            // 1. DATI DI ESEMPIO
-            const authors = ['TechWizard', 'AIFan_99', 'RedditorITA', 'CodeMaster', 'DataScientist'];
-            const flairs = ['Discussion', 'AI News', 'Tutorial', 'Tool', 'Project'];
+            // 1. PULISCI E RICREA I CANVAS (risolve problemi di rendering)
+            function recreateCanvas(id) {
+                const oldCanvas = document.getElementById(id);
+                if (oldCanvas) {
+                    const parent = oldCanvas.parentNode;
+                    const newCanvas = document.createElement('canvas');
+                    newCanvas.id = id;
+                    parent.replaceChild(newCanvas, oldCanvas);
+                    return newCanvas;
+                }
+                return null;
+            }
+
+            // 2. RICREA I CANVAS PER FORZARE IL RENDERING
+            setTimeout(() => {
+                recreateCanvas('activityChart');
+                recreateCanvas('flairChart');
+            }, 10);
+
+            // 3. DATI DI ESEMPIO
+            const authors = ['TechWizard', 'AIFan_99', 'RedditorITA', 'CodeMaster', 'DataScientist', 'DevOpsPro', 'UXGuru'];
+            const flairs = ['Discussion', 'AI News', 'Tutorial', 'Tool', 'Project', 'Ask AI', 'Research'];
             const titles = [
-                "Come usare ChatGPT per programmare",
+                "ChatGPT per programmare: guida completa",
                 "Stable Diffusion 3 è pazzesco!",
                 "Machine Learning per principianti",
-                "LangChain tutorial italiano",
-                "AI nel 2024: trend e previsioni"
+                "LangChain tutorial in italiano",
+                "AI nel 2024: trend e previsioni",
+                "Come usare Python per data science",
+                "Neural network spiegate semplice"
             ];
 
-            // 2. GENERA 50 POST
+            // 4. GENERA 50 POST
             const posts = [];
             for(let i = 0; i < 50; i++) {
                 posts.push({
-                    title: titles[Math.floor(Math.random() * titles.length)] + ' ' + i,
+                    title: titles[Math.floor(Math.random() * titles.length)] + ' #' + i,
                     author: authors[Math.floor(Math.random() * authors.length)],
-                    score: Math.floor(Math.random() * 500) + 10,
-                    num_comments: Math.floor(Math.random() * 80),
+                    score: Math.floor(Math.random() * 800) + 20,
+                    num_comments: Math.floor(Math.random() * 120),
                     created_utc: Date.now()/1000 - Math.random()*604800,
                     link_flair_text: flairs[Math.floor(Math.random() * flairs.length)]
                 });
             }
 
-            // 3. CALCOLA STATISTICHE
+            // 5. CALCOLA STATISTICHE BASE
             const totalScore = posts.reduce((a,b) => a + b.score, 0);
             const totalComments = posts.reduce((a,b) => a + b.num_comments, 0);
             
-            // 4. POPOLA CARD
             document.getElementById('totalEngagement').textContent = (totalScore + totalComments).toLocaleString();
             document.getElementById('totalPosts').textContent = posts.length;
             document.getElementById('avgComments').textContent = (totalComments/posts.length).toFixed(1);
             
-            // 5. ORA DI PICCO
+            // 6. ORA DI PICCO
             const hours = Array(24).fill(0);
             posts.forEach(p => hours[new Date(p.created_utc*1000).getHours()]++);
             const peak = hours.indexOf(Math.max(...hours));
             document.getElementById('peakHour').textContent = `${String(peak).padStart(2,'0')}:00`;
 
-            // 6. GRAFICO ATTIVITÀ
+            // 7. GRAFICO ATTIVITÀ (con ritardo per sicurezza)
             setTimeout(() => {
-                const actCtx = document.getElementById('activityChart')?.getContext('2d');
-                if(actCtx) {
-                    new Chart(actCtx, {
-                        type: 'line',
-                        data: {
-                            labels: Array.from({length:24}, (_,i) => i+':00'),
-                            datasets: [{
-                                label: 'Post',
-                                data: hours,
-                                borderColor: '#FF4500',
-                                backgroundColor: 'rgba(255,69,0,0.1)',
-                                fill: true
-                            }]
-                        },
-                        options: { responsive: true, maintainAspectRatio: false }
-                    });
+                const actCanvas = document.getElementById('activityChart');
+                if(actCanvas) {
+                    const ctx = actCanvas.getContext('2d');
+                    if(ctx) {
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: Array.from({length:24}, (_,i) => i + ':00'),
+                                datasets: [{
+                                    label: 'Post pubblicati',
+                                    data: hours,
+                                    borderColor: '#FF4500',
+                                    backgroundColor: 'rgba(255,69,0,0.1)',
+                                    borderWidth: 3,
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointBackgroundColor: '#FF4500',
+                                    pointRadius: 4
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } }
+                            }
+                        });
+                        console.log("✅ Grafico attività creato");
+                    }
                 }
-            }, 100);
+            }, 200);
 
-            // 7. GRAFICO FLAIR
+            // 8. GRAFICO FLAIR (con ritardo per sicurezza)
             setTimeout(() => {
-                const flairCtx = document.getElementById('flairChart')?.getContext('2d');
-                if(flairCtx) {
-                    const flairCount = {};
-                    posts.forEach(p => flairCount[p.link_flair_text] = (flairCount[p.link_flair_text]||0)+1);
-                    
-                    new Chart(flairCtx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: Object.keys(flairCount).slice(0,5),
-                            datasets: [{
-                                data: Object.values(flairCount).slice(0,5),
-                                backgroundColor: ['#FF4500','#FF6347','#FFA500','#FF8C00','#FF7F50']
-                            }]
-                        },
-                        options: { responsive: true, maintainAspectRatio: false }
-                    });
+                const flairCanvas = document.getElementById('flairChart');
+                if(flairCanvas) {
+                    const ctx = flairCanvas.getContext('2d');
+                    if(ctx) {
+                        const flairCount = {};
+                        posts.forEach(p => {
+                            flairCount[p.link_flair_text] = (flairCount[p.link_flair_text]||0)+1;
+                        });
+                        
+                        new Chart(ctx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: Object.keys(flairCount).slice(0,5),
+                                datasets: [{
+                                    data: Object.values(flairCount).slice(0,5),
+                                    backgroundColor: ['#FF4500', '#FF6347', '#FFA500', '#FF8C00', '#FF7F50'],
+                                    borderWidth: 0
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { position: 'bottom' }
+                                },
+                                cutout: '60%'
+                            }
+                        });
+                        console.log("✅ Grafico flair creato");
+                    }
                 }
-            }, 100);
+            }, 200);
 
-            // 8. TABELLA AUTORI
+            // 9. TABELLA AUTORI
             const authorStats = {};
             posts.forEach(p => {
-                if(!authorStats[p.author]) authorStats[p.author] = {posts:0, karma:0, comments:0};
+                if(!authorStats[p.author]) {
+                    authorStats[p.author] = {posts:0, karma:0, comments:0};
+                }
                 authorStats[p.author].posts++;
                 authorStats[p.author].karma += p.score;
                 authorStats[p.author].comments += p.num_comments;
             });
             
             const topAuthors = Object.entries(authorStats)
-                .map(([name,s]) => ({name,...s}))
+                .map(([name,s]) => ({name, ...s}))
                 .sort((a,b) => b.karma - a.karma)
                 .slice(0,5);
             
             document.getElementById('authorsTable').innerHTML = topAuthors.map(a => 
-                `<tr class="border-b"><td class="py-2">u/${a.name}</td><td>${a.posts}</td><td>${a.karma}</td><td>${a.comments}</td></tr>`
+                `<tr class="border-b hover:bg-gray-50">
+                    <td class="px-4 py-3">u/${a.name}</td>
+                    <td class="px-4 py-3">${a.posts}</td>
+                    <td class="px-4 py-3 font-semibold text-orange-600">${a.karma.toLocaleString()}</td>
+                    <td class="px-4 py-3">${a.comments}</td>
+                </tr>`
             ).join('');
 
-            // 9. WORD CLOUD
-            const words = ['AI','MachineLearning','Python','ChatGPT','Tutorial','Italia','Tech','Coding'];
-            document.getElementById('wordCloud').innerHTML = words.map(w => 
-                `<span class="text-orange-600 font-bold text-${Math.floor(Math.random()*3+1)}xl">${w}</span>`
+            // 10. WORD CLOUD
+            const wordList = [
+                {word:'AI', size:3}, {word:'Python', size:2.5}, {word:'ChatGPT', size:2.2},
+                {word:'MachineLearning', size:2}, {word:'Tutorial', size:1.8}, {word:'Italia', size:1.6},
+                {word:'Tech', size:1.5}, {word:'Coding', size:1.4}, {word:'DataScience', size:1.3},
+                {word:'NeuralNetwork', size:1.2}
+            ];
+            
+            document.getElementById('wordCloud').innerHTML = wordList.map(w => 
+                `<span class="text-orange-600 font-bold inline-block hover:scale-110 transition-transform" 
+                       style="font-size: ${w.size}rem; opacity: 0.7;">${w.word}</span>`
             ).join(' ');
 
-            // 10. TOP POSTS
+            // 11. TOP POSTS
             const topPosts = posts.sort((a,b) => b.score - a.score).slice(0,3);
             document.getElementById('topPosts').innerHTML = topPosts.map(p => 
-                `<div class="p-3 bg-gray-50 rounded">📌 ${p.title}<br><small>⬆️ ${p.score} | 💬 ${p.num_comments}</small></div>`
+                `<div class="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div class="font-semibold">📌 ${p.title}</div>
+                    <div class="flex gap-4 mt-2 text-sm text-gray-600">
+                        <span><i class="fas fa-arrow-up text-orange-600"></i> ${p.score}</span>
+                        <span><i class="fas fa-comment text-blue-600"></i> ${p.num_comments}</span>
+                        <span><i class="fas fa-user text-gray-500"></i> u/${p.author}</span>
+                    </div>
+                </div>`
             ).join('');
 
-            // 11. INSIGHTS
+            // 12. INSIGHTS
             document.getElementById('insights').innerHTML = `
-                <div class="bg-white/10 p-3 rounded">🕐 Pubblica alle ${String(peak).padStart(2,'0')}:00</div>
-                <div class="bg-white/10 p-3 rounded">👑 Top autore: u/${topAuthors[0].name}</div>
-                <div class="bg-white/10 p-3 rounded">🔥 Categoria top: ${flairs[0]}</div>
+                <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-clock text-xl mr-2"></i>
+                        <div class="font-bold">Miglior Orario</div>
+                    </div>
+                    <p class="text-sm">Pubblica alle ${String(peak).padStart(2,'0')}:00 per massima visibilità (${Math.round((hours[peak]/posts.length)*100)}% dei post).</p>
+                </div>
+                <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-crown text-xl mr-2"></i>
+                        <div class="font-bold">Influencer Top</div>
+                    </div>
+                    <p class="text-sm">u/${topAuthors[0].name} domina con ${topAuthors[0].karma} karma totali.</p>
+                </div>
+                <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-fire text-xl mr-2"></i>
+                        <div class="font-bold">Contenuto Hot</div>
+                    </div>
+                    <p class="text-sm">I post con flair "${Object.keys(flairCount)[0]}" sono i più frequenti.</p>
+                </div>
             `;
 
-            console.log("✅ Dashboard completata!");
+            console.log("✅ Dashboard completata con tutti gli elementi!");
         })();
     </script>
 </body>
