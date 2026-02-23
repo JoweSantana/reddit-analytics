@@ -730,5 +730,19 @@
             if (e.key === 'Enter') analyzeSubreddit();
         });
     </script>
+
+    <!-- NUOVO SCRIPT PER CARICAMENTO AUTOMATICO -->
+    <script>
+        // Avvia automaticamente l'analisi con i dati demo al caricamento della pagina
+        document.addEventListener('DOMContentLoaded', function() {
+            // Piccolo ritardo per garantire che tutto sia caricato
+            setTimeout(function() {
+                // Carica i dati demo automaticamente
+                loadDemoData();
+            }, 500);
+        });
+    </script>
+    <!-- FINE NUOVO SCRIPT -->
+    
 </body>
 </html>
