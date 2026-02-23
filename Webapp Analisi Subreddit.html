@@ -45,6 +45,8 @@
         
         .tag-cloud span {
             transition: all 0.3s ease;
+            display: inline-block;
+            margin: 0.25rem;
         }
         
         .tag-cloud span:hover {
@@ -129,6 +131,14 @@
                 </div>
             </div>
         </section>
+
+        <!-- Error Message -->
+        <div id="errorMessage" class="hidden mb-8 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-lg">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-red-500 mr-3"></i>
+                <p id="errorText" class="text-red-700"></p>
+            </div>
+        </div>
 
         <!-- Dashboard Results -->
         <div id="dashboard" class="hidden space-y-8">
@@ -272,24 +282,17 @@
     </footer>
 
     <script>
-        // VARIABILI GLOBALI
+        // Variabili globali
         let charts = {};
 
-        // FUNZIONE PRINCIPALE CHE GENERA I DATI DEMO
-        function generateAndShowDemoData() {
-            console.log("Generazione dati demo in corso...");
-            
-            // 1. Nascondi eventuali errori
-            const errorDiv = document.getElementById('errorMessage');
-            if (errorDiv) errorDiv.classList.add('hidden');
-            
-            // 2. Mostra la dashboard
-            document.getElementById('dashboard').classList.remove('hidden');
-            
-            // 3. GENERA DATI DEMO REALISTICI
+        // Funzione per generare dati demo completi
+        function generateDemoData() {
+            // Array di dati realistici
             const authors = ['TechWizard', 'AIFan_99', 'RedditorITA', 'CodeMaster', 'DigitalNomad', 
                            'StartupGuy', 'DataScientist', 'DevOps_Pro', 'UX_Designer', 'CloudExpert'];
-            const flairs = ['Discussion', 'AI News', 'Tutorial', 'Tool', 'Project', 'Ask AI', 'Research'];
+            
+            const flairs = ['Discussion', 'AI News', 'Tutorial', 'Tool', 'Project', 'Ask AI', 'Research', 'Senza Flair'];
+            
             const titles = [
                 "Ho creato un tool AI che genera codice Python",
                 "ChatGPT vs Claude: confronto approfondito",
@@ -300,37 +303,48 @@
                 "Machine Learning per principianti",
                 "L'impatto dell'AI sul lavoro creativo",
                 "Tutorial: fine-tuning di LLM locali",
-                "Agenti AI autonomi: stato dell'arte"
+                "Agenti AI autonomi: stato dell'arte",
+                "Come usare LangChain per applicazioni complesse",
+                "RAG: Retrieval Augmented Generation spiegato",
+                "Fine-tuning di modelli con LoRA",
+                "Embedding e similarità semantica",
+                "AI etica: sfide e opportunità"
             ];
 
-            // Genera 50 post fittizi
+            // Genera 50 post
             const posts = [];
             const now = Date.now() / 1000;
             
             for (let i = 0; i < 50; i++) {
                 const author = authors[Math.floor(Math.random() * authors.length)];
                 const flair = flairs[Math.floor(Math.random() * flairs.length)];
-                const baseTitle = titles[Math.floor(Math.random() * titles.length)];
+                const title = titles[Math.floor(Math.random() * titles.length)] + (Math.random() > 0.7 ? ` [Parte ${i}]` : '');
                 
                 posts.push({
-                    title: baseTitle + (Math.random() > 0.5 ? ' [' + i + ']' : ''),
+                    title: title,
                     author: author,
-                    score: Math.floor(Math.random() * 500) + 10,
-                    num_comments: Math.floor(Math.random() * 100),
-                    created_utc: now - (Math.random() * 604800),
+                    score: Math.floor(Math.random() * 800) + 20,
+                    num_comments: Math.floor(Math.random() * 150),
+                    created_utc: now - (Math.random() * 7 * 24 * 60 * 60), // Ultimi 7 giorni
                     link_flair_text: flair,
-                    url: `https://reddit.com/r/IA_Italia/comments/example${i}`,
-                    selftext: Math.random() > 0.7 ? "Testo del post con dettagli interessanti..." : ""
+                    url: `https://reddit.com/r/IA_Italia/comments/demo${i}`,
+                    selftext: Math.random() > 0.6 ? "Contenuto del post con dettagli interessanti..." : ""
                 });
             }
             
-            // 4. ELABORA I DATI
-            // Statistiche di base
+            return posts;
+        }
+
+        // Funzione per elaborare i dati e aggiornare la UI
+        function processAndDisplayData(posts) {
+            console.log("Elaborazione dati in corso...");
+            
+            // 1. Statistiche di base
             const totalScore = posts.reduce((sum, p) => sum + p.score, 0);
             const totalComments = posts.reduce((sum, p) => sum + p.num_comments, 0);
             const avgComments = (totalComments / posts.length).toFixed(1);
             
-            // Analisi autori
+            // 2. Analisi autori
             const authorStats = {};
             posts.forEach(post => {
                 if (!authorStats[post.author]) {
@@ -346,14 +360,14 @@
                 .sort((a, b) => b.karma - a.karma)
                 .slice(0, 10);
             
-            // Analisi flair
+            // 3. Analisi flair
             const flairStats = {};
             posts.forEach(post => {
                 const flair = post.link_flair_text || 'Senza Flair';
                 flairStats[flair] = (flairStats[flair] || 0) + 1;
             });
             
-            // Attività oraria
+            // 4. Attività oraria
             const hourlyActivity = new Array(24).fill(0);
             posts.forEach(post => {
                 const hour = new Date(post.created_utc * 1000).getHours();
@@ -362,15 +376,14 @@
             
             const peakHour = hourlyActivity.indexOf(Math.max(...hourlyActivity));
             
-            // Word cloud
+            // 5. Word cloud (parole più frequenti nei titoli)
             const wordFreq = {};
-            const stopWords = new Set(['il', 'la', 'lo', 'i', 'gli', 'le', 'di', 'a', 'da', 'in', 'con', 'su', 'per', 'tra', 'fra', 'the', 'and', 'for', 'with', 'che', 'non', 'è', 'sono', 'un', 'una']);
+            const stopWords = new Set(['il', 'la', 'lo', 'i', 'gli', 'le', 'di', 'a', 'da', 'in', 'con', 'su', 'per', 'tra', 'fra', 'the', 'and', 'for', 'with', 'che', 'non', 'è', 'sono', 'un', 'una', 'ho', 'ha', 'hanno', 'essere', 'avere']);
             
             posts.forEach(post => {
-                const text = (post.title + ' ' + (post.selftext || '')).toLowerCase();
-                const words = text.match(/\b[a-zA-Zàèéìòù]{4,}\b/g) || [];
+                const words = post.title.toLowerCase().match(/\b[a-zA-Zàèéìòù]{4,}\b/g) || [];
                 words.forEach(word => {
-                    if (!stopWords.has(word) && word.length > 3) {
+                    if (!stopWords.has(word)) {
                         wordFreq[word] = (wordFreq[word] || 0) + post.score;
                     }
                 });
@@ -378,20 +391,20 @@
             
             const trendingWords = Object.entries(wordFreq)
                 .sort((a, b) => b[1] - a[1])
-                .slice(0, 20);
+                .slice(0, 25);
             
+            // 6. Top posts
             const topPosts = posts.sort((a, b) => b.score - a.score).slice(0, 5);
             
-            // 5. AGGIORNA L'INTERFACCIA
-            // Card in alto
+            // 7. Aggiorna le card in alto
             document.getElementById('totalEngagement').textContent = (totalScore + totalComments).toLocaleString();
             document.getElementById('totalPosts').textContent = posts.length;
             document.getElementById('avgComments').textContent = avgComments;
             document.getElementById('peakHour').textContent = `${String(peakHour).padStart(2, '0')}:00`;
             
-            // Grafico attività
-            const actCtx = document.getElementById('activityChart').getContext('2d');
+            // 8. Grafico attività
             if (charts.activity) charts.activity.destroy();
+            const actCtx = document.getElementById('activityChart').getContext('2d');
             charts.activity = new Chart(actCtx, {
                 type: 'line',
                 data: {
@@ -401,29 +414,41 @@
                         data: hourlyActivity,
                         borderColor: '#FF4500',
                         backgroundColor: 'rgba(255, 69, 0, 0.1)',
+                        borderWidth: 2,
                         fill: true,
-                        tension: 0.4
+                        tension: 0.4,
+                        pointBackgroundColor: '#FF4500',
+                        pointRadius: 4
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } }
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            ticks: { stepSize: 1, precision: 0 }
+                        }
+                    }
                 }
             });
             
-            // Grafico flair
-            const flairCtx = document.getElementById('flairChart').getContext('2d');
+            // 9. Grafico flair
             if (charts.flair) charts.flair.destroy();
+            const flairCtx = document.getElementById('flairChart').getContext('2d');
             const flairLabels = Object.keys(flairStats).slice(0, 6);
-            const flairData = flairLabels.map(l => flairStats[l]);
+            const flairValues = flairLabels.map(l => flairStats[l]);
+            
             charts.flair = new Chart(flairCtx, {
                 type: 'doughnut',
                 data: {
                     labels: flairLabels,
                     datasets: [{
-                        data: flairData,
-                        backgroundColor: ['#FF4500', '#FF6347', '#FFA500', '#FFD700', '#FF8C00', '#FF7F50'],
+                        data: flairValues,
+                        backgroundColor: ['#FF4500', '#FF6347', '#FFA500', '#FF8C00', '#FF7F50', '#FFB347'],
                         borderWidth: 0
                     }]
                 },
@@ -431,82 +456,129 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'bottom', labels: { font: { size: 11 } } }
-                    }
+                        legend: { 
+                            position: 'bottom',
+                            labels: { 
+                                font: { size: 11 },
+                                padding: 15
+                            }
+                        }
+                    },
+                    cutout: '60%'
                 }
             });
             
-            // Tabella autori
+            // 10. Tabella autori
             const tbody = document.getElementById('authorsTable');
             tbody.innerHTML = topAuthors.map((author, index) => `
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-4 py-3 font-bold text-gray-400">#${index + 1}</td>
-                    <td class="px-4 py-3 font-semibold text-gray-800">u/${author.name}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-gradient-to-br from-orange-400 to-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold mr-2">
+                                ${author.name[0].toUpperCase()}
+                            </div>
+                            <span class="font-semibold text-gray-800">u/${author.name}</span>
+                        </div>
+                    </td>
                     <td class="px-4 py-3 text-gray-600">${author.posts}</td>
                     <td class="px-4 py-3 font-semibold text-orange-600">${author.karma.toLocaleString()}</td>
                     <td class="px-4 py-3 text-gray-600">${author.comments}</td>
                 </tr>
             `).join('');
             
-            // Word cloud
+            // 11. Word cloud
             const cloudContainer = document.getElementById('wordCloud');
-            const maxScore = Math.max(...trendingWords.map(w => w[1]));
-            cloudContainer.innerHTML = trendingWords.map(([word, score]) => {
-                const size = 0.8 + (score / maxScore) * 1.5;
-                return `<span class="text-orange-600 font-bold" style="font-size: ${size}rem">${word}</span>`;
-            }).join(' ');
+            if (trendingWords.length > 0) {
+                const maxScore = Math.max(...trendingWords.map(w => w[1]));
+                cloudContainer.innerHTML = trendingWords.map(([word, score]) => {
+                    const size = 0.9 + (score / maxScore) * 1.8;
+                    const opacity = 0.5 + (score / maxScore) * 0.5;
+                    const colors = ['text-orange-600', 'text-red-500', 'text-orange-500', 'text-yellow-600', 'text-red-600'];
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    return `<span class="${color} font-bold cursor-pointer hover:opacity-100 transition-all" style="font-size: ${size}rem; opacity: ${opacity}">${word}</span>`;
+                }).join(' ');
+            } else {
+                cloudContainer.innerHTML = '<p class="text-gray-400">Nessun topic disponibile</p>';
+            }
             
-            // Top posts
+            // 12. Top posts
             const postsContainer = document.getElementById('topPosts');
             postsContainer.innerHTML = topPosts.map((post, index) => `
-                <div class="p-4 bg-gray-50 rounded-xl">
-                    <div class="flex items-start space-x-4">
-                        <div class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center text-white font-bold">${index + 1}</div>
-                        <div class="flex-1">
-                            <h4 class="font-semibold">${post.title}</h4>
-                            <div class="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                                <span>u/${post.author}</span>
-                                <span class="text-orange-600">⬆️ ${post.score}</span>
-                                <span>💬 ${post.num_comments}</span>
-                            </div>
+                <div class="flex items-start space-x-4 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                    <div class="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg flex items-center justify-center text-white font-bold">
+                        ${index + 1}
+                    </div>
+                    <div class="flex-1">
+                        <h4 class="text-gray-800 font-semibold">${post.title}</h4>
+                        <div class="flex items-center space-x-4 mt-2 text-sm">
+                            <span class="flex items-center text-gray-600"><i class="fas fa-user mr-1 text-gray-400"></i> u/${post.author}</span>
+                            <span class="flex items-center text-orange-600"><i class="fas fa-arrow-up mr-1"></i> ${post.score}</span>
+                            <span class="flex items-center text-gray-600"><i class="fas fa-comment mr-1"></i> ${post.num_comments}</span>
+                            ${post.link_flair_text ? `<span class="px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">${post.link_flair_text}</span>` : ''}
                         </div>
                     </div>
                 </div>
             `).join('');
             
-            // Insights
+            // 13. Insights
             const insights = [
-                { icon: 'fa-clock', title: 'Miglior Orario', text: `Pubblica alle ${String(peakHour).padStart(2, '0')}:00 per massima visibilità.` },
-                { icon: 'fa-crown', title: 'Influencer Top', text: `u/${topAuthors[0].name} genera più engagement.` },
-                { icon: 'fa-fire', title: 'Contenuto Hot', text: `I post "${Object.keys(flairStats)[0]}" sono i più popolari.` }
+                { 
+                    icon: 'fa-clock', 
+                    title: 'Miglior Orario', 
+                    text: `Pubblica intorno alle ${String(peakHour).padStart(2, '0')}:00 per massima visibilità. In questa fascia pubblichi il ${Math.round((hourlyActivity[peakHour]/posts.length)*100)}% dei post.` 
+                },
+                { 
+                    icon: 'fa-crown', 
+                    title: 'Influencer Top', 
+                    text: `u/${topAuthors[0].name} domina con ${topAuthors[0].karma} karma. Considera di interagire con i suoi post per aumentare la visibilità.` 
+                },
+                { 
+                    icon: 'fa-fire', 
+                    title: 'Contenuto Hot', 
+                    text: `I post con flair "${Object.keys(flairStats)[0]}" sono i più frequenti (${Math.round((Object.values(flairStats)[0]/posts.length)*100)}%). Prova a creare contenuti simili.` 
+                }
             ];
             
             document.getElementById('insights').innerHTML = insights.map(insight => `
-                <div class="bg-white bg-opacity-20 rounded-xl p-4">
+                <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-xl p-4 border border-white border-opacity-20">
                     <div class="flex items-center mb-2">
                         <i class="fas ${insight.icon} text-xl mr-2"></i>
-                        <h4 class="font-bold">${insight.title}</h4>
+                        <h4 class="font-bold text-lg">${insight.title}</h4>
                     </div>
-                    <p class="text-sm opacity-90">${insight.text}</p>
+                    <p class="text-sm opacity-90 leading-relaxed">${insight.text}</p>
                 </div>
             `).join('');
             
-            console.log("Dati demo caricati con successo!");
+            console.log("Dashboard aggiornata con successo!");
         }
 
-        // Funzioni pubbliche
+        // Funzione principale per avviare l'analisi
+        function runAnalysis() {
+            // Mostra la dashboard
+            document.getElementById('dashboard').classList.remove('hidden');
+            
+            // Genera dati demo
+            const posts = generateDemoData();
+            
+            // Elabora e mostra i dati
+            processAndDisplayData(posts);
+        }
+
+        // Esponi le funzioni globalmente
         window.analyzeSubreddit = function() {
-            generateAndShowDemoData();
+            runAnalysis();
         };
 
         window.loadDemoData = function() {
-            generateAndShowDemoData();
+            runAnalysis();
         };
 
-        // CARICAMENTO AUTOMATICO ALL'AVVIO
+        // Avvia automaticamente al caricamento della pagina
         document.addEventListener('DOMContentLoaded', function() {
-            // Breve ritardo per sicurezza
-            setTimeout(generateAndShowDemoData, 300);
+            // Piccolo ritardo per sicurezza
+            setTimeout(runAnalysis, 500);
         });
     </script>
 </body>
